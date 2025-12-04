@@ -1,4 +1,3 @@
-
 # RewardPlay Backend Server
 
 This Node.js server runs the Telegram bot using a polling mechanism. It is designed to be deployed on a persistent hosting service like Render.
@@ -9,6 +8,7 @@ This Node.js server runs the Telegram bot using a polling mechanism. It is desig
 Before deploying, make sure your new GitHub repository (e.g., `PlayEarn-Backend`) contains the following files from this directory:
 - `server.js`
 - `package.json`
+- `README.md` (this file)
 
 ### 2. Deploy to Render (Step-by-Step)
 Render is a service that can run this server for you 24/7. Follow these steps:
