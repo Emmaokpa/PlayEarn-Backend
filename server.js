@@ -1,4 +1,3 @@
-
 // A single, stable Node.js server for handling Telegram bot logic with polling.
 // This is designed to be deployed on a persistent hosting service like Render.
 
@@ -51,22 +50,7 @@ async function getProductDetails(productId, purchaseType) {
   return docSnap.data();
 }
 
-// --- Bot Logic ---
-
-// Listen for the /start command to provide a user with their chat ID
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
-});
-
-// A command to simulate a purchase for testing purposes.
-// In a real scenario, the app would call an endpoint that triggers this logic.
-bot.onText(/\/purchase (.+) (.+)/, async (msg, match) => {
-    const chatId = msg.chat.id;
-    const userId = msg.from.id; // Using Telegram user ID
-    const purchaseType = match[1]; // e.g., 'inAppPurchases'
-    const productId = match[2]; // e.g., 'pack1'
-
+async function handlePurchaseRequest(chatId, userId, purchaseType, productId) {
     console.log(`Purchase command received from ${userId} for ${purchaseType} ${productId}`);
     
     if (purchaseType !== 'inAppPurchases' && purchaseType !== 'stickerPacks') {
@@ -115,13 +99,43 @@ bot.onText(/\/purchase (.+) (.+)/, async (msg, match) => {
             });
         }
         
-        const invoiceUrl = await bot.createInvoiceLink(invoiceArgs);
-        await bot.sendMessage(chatId, `Please complete your purchase using this link: ${invoiceUrl}`);
+        // Use sendInvoice directly instead of creating a link for a smoother in-app experience
+        await bot.sendInvoice(chatId, invoiceArgs.title, invoiceArgs.description, invoiceArgs.payload, invoiceArgs.provider_token, invoiceArgs.currency, invoiceArgs.prices, { photo_url: invoiceArgs.photo_url, photo_width: invoiceArgs.photo_width, photo_height: invoiceArgs.photo_height });
 
     } catch (error) {
-        console.error("Error creating invoice link:", error);
-        bot.sendMessage(chatId, "Sorry, there was an error creating your payment link.");
+        console.error("Error creating invoice:", error);
+        bot.sendMessage(chatId, "Sorry, there was an error creating your payment request.");
     }
+}
+
+
+// --- Bot Logic ---
+
+// Listen for the /start command
+bot.onText(/\/start(.*)/, (msg, match) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id.toString();
+  const payload = (match[1] || '').trim();
+
+  // Check if the start command has a deep link payload for a purchase
+  if (payload.startsWith('purchase-')) {
+    const productId = payload.replace('purchase-', '');
+    // Assume all deep-linked purchases are from 'inAppPurchases' for now.
+    // In a more complex app, the payload could be 'purchase-inAppPurchases-pack1'
+    handlePurchaseRequest(chatId, userId, 'inAppPurchases', productId);
+  } else {
+    bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
+  }
+});
+
+// A command to manually trigger a purchase for testing purposes.
+bot.onText(/\/purchase (.+) (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id.toString();
+    const purchaseType = match[1]; // e.g., 'inAppPurchases'
+    const productId = match[2]; // e.g., 'pack1'
+    
+    await handlePurchaseRequest(chatId, userId, purchaseType, productId);
 });
 
 
