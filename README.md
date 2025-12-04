@@ -24,6 +24,7 @@ Render is a service that can run this server for you 24/7. Follow these steps:
 3.  **Configure the Service:**
     *   **Name:** Give your service a unique name (e.g., `playearn-bot-server`).
     *   **Region:** Choose a region closest to you.
+    *   **Root Directory:** Leave this field **blank**. This is important!
     *   **Branch:** Select `main`.
     *   **Runtime:** Render should automatically detect `Node`.
     *   **Build Command:** Set this to `npm install`.
