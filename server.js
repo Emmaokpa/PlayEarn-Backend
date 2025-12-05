@@ -95,7 +95,7 @@ async function handlePurchaseRequest(chatId, userId, purchaseType, productId) {
             // Digital goods (coins, spins, stickers) paid with Telegram Stars
             let priceInStars;
             if (purchaseType === 'stickerPacks') {
-                // For stickers, price is in coins. Convert coins to USD then to Stars.
+                // For stickers, price is in coins. The bot handles conversion.
                 const priceInUsd = product.price * COIN_TO_USD_RATE;
                 priceInStars = Math.round(priceInUsd * USD_TO_STARS_RATE);
             } else { // 'inAppPurchases'
@@ -123,20 +123,25 @@ async function handlePurchaseRequest(chatId, userId, purchaseType, productId) {
 
 // --- Bot Logic ---
 
-// Listen for the /start command with a deep link payload
-bot.onText(/\/start purchase-(.+)-(.+)/, (msg, match) => {
+// Listen for the /start command. It can optionally have a payload.
+bot.onText(/\/start(?: (.+))?/, (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
-  const purchaseType = match[1]; // e.g., 'inAppPurchases' or 'stickerPacks'
-  const productId = match[2]; // e.g., 'pack1'
-  
-  handlePurchaseRequest(chatId, userId, purchaseType, productId);
-});
+  const payload = match[1]; // This will be the text after /start, or undefined if there is none.
 
-// Generic /start command - must be exact match
-bot.onText(/^\/start$/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
+  if (payload) {
+    // A payload exists, so this is a deep link for a purchase.
+    const [purchaseKeyword, purchaseType, productId] = payload.split('-');
+    if (purchaseKeyword === 'purchase' && purchaseType && productId) {
+        handlePurchaseRequest(chatId, userId, purchaseType, productId);
+    } else {
+        // Handle other potential payloads or send a generic welcome
+        bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
+    }
+  } else {
+    // No payload, so the user just typed /start.
+    bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
+  }
 });
 
 // A command to manually trigger a purchase for testing purposes.
@@ -196,10 +201,9 @@ bot.on('successful_payment', async (msg) => {
         await bot.sendMessage(chatId, `Thank you for your purchase! ${pack.amount.toLocaleString()} spins have been added to your account.`);
       }
     } else if (purchaseType === 'stickerPacks') {
-      // For sticker packs, we need to deduct the coin cost from the user *after* payment
-      await userRef.update({ coins: admin.firestore.FieldValue.increment(-product.price) });
+      // Logic for sticker packs after purchase is successful.
       // In a real app, you would add the sticker pack to the user's collection here.
-      console.log(`User ${userId} purchased sticker pack ${productId} for ${product.price} coins.`);
+      console.log(`User ${userId} purchased sticker pack ${productId} via Telegram Stars.`);
       await bot.sendMessage(chatId, `Thank you for your purchase! You've unlocked the "${product.name}" sticker pack.`);
     }
 
