@@ -133,7 +133,7 @@ bot.onText(/\/start purchase-(.+)-(.+)/, (msg, match) => {
 });
 
 // Generic /start command
-bot.onText(/\/start$/, (msg) => {
+bot.onText(/^\/start$/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, `Welcome to RewardPlay! Your Chat ID is: ${chatId}. You can use this to link your account in the app.`);
 });
